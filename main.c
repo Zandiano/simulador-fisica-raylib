@@ -13,12 +13,14 @@
 #define PARTICLE_COLOR BLACK
 #define RESISTENCIA 0.60f
 
+int Pause = 0;
 float randomness = 0.1f;
 char buffer[64] = "";
 int KEY = 0;
 Vector2 dist = {0};
 Vector2 dir = {0};
 Vector2 massCenter = {0};
+int massCenterRendered = 0;
 float FORCE = 1.0f;
 float gravityForceCalc = 0;
 float GRAVITY = 0.1f;
@@ -53,10 +55,6 @@ void PreUpdate(){
 
     massCenter.x /= PARTICLE_QNT;
     massCenter.y /= PARTICLE_QNT;
-
-}
-
-void Update(){
     
     KEY = GetKeyPressed();
     switch(KEY){
@@ -84,7 +82,17 @@ void Update(){
         case KEY_P:
             gravityOn = !gravityOn;
             break;
+        case KEY_SPACE:
+            Pause = !Pause;
+            break;
+        case KEY_Z:
+            massCenterRendered = !massCenterRendered;
+            break;
     }
+}
+
+void Update(){
+    
     
     for(int i = 0; i < PARTICLE_QNT; i++){
         particleList[i].vel.x += GetRandomValue(-1,1)*randomness;
@@ -98,10 +106,10 @@ void Update(){
         if(dist.x){dir.x = dist.x/fabs(dist.x);} else {dir.x = 0;}
         if(dist.y){dir.y = dist.y/fabs(dist.y);} else {dir.y = 0;}
 
-        gravityForceCalc = (PARTICLE_QNT/(pow(dist.x,2)+pow(dist.y,2)));
+        gravityForceCalc = (PARTICLE_QNT/(pow(dist.x,2)+pow(dist.y,2))) * FORCE;
 
-        particleList[i].vel.x += dir.x * gravityForceCalc * FORCE;
-        particleList[i].vel.y += dir.y * gravityForceCalc* FORCE;
+        particleList[i].vel.x += dir.x * gravityForceCalc;
+        particleList[i].vel.y += dir.y * gravityForceCalc;
     }
 }
 
@@ -125,10 +133,16 @@ void Render(){
     
     for(int i = 0; i < PARTICLE_QNT; i++){DrawCircleV(particleList[i].pos, 2, particleList[i].color);}
     
-    DrawCircle(massCenter.x,massCenter.y, 3, RED);
+    if(massCenterRendered){DrawCircle(massCenter.x,massCenter.y, 3, RED);}
     
+    sprintf(buffer, "PULL: %.2f", FORCE);
+    DrawText(buffer, WINDOWW-WINDOWW/4, WINDOWH-WINDOWH/12, 12, RED);
+
+    sprintf(buffer, "GRAVITY: %.2f", GRAVITY);
+    DrawText(buffer, WINDOWW-WINDOWW/4, WINDOWH-WINDOWH/16, 12, RED);
+
     sprintf(buffer, "RANDOMNESS: %.2f", randomness);
-    DrawText(buffer, WINDOWW-WINDOWW/6,WINDOWH-WINDOWH/20, 10, RED);
+    DrawText(buffer, WINDOWW-WINDOWW/4,WINDOWH-WINDOWH/24, 12, RED);
 
     sprintf(buffer, "%d", GetFPS());
     DrawText(buffer, WINDOWW-WINDOWW/6, WINDOWH/20, 20, RED);
@@ -147,10 +161,13 @@ int main(){
     {
         //PRE-UPDATE
         PreUpdate();
-        //UPDATE
-        Update();
-        //POS-UPDATE
-        PosUpdate();
+
+        if(!Pause){
+            //UPDATE
+            Update();
+            //POS-UPDATE
+            PosUpdate();
+        }
         //RENDER
         BeginDrawing();
         ClearBackground(RAYWHITE);
