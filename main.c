@@ -110,6 +110,7 @@ void PreUpdate(){
             ammount /= 10;
             break;
     }
+    dragCoefficient = fabs(dragCoefficient);
 }
 
 void Update(){
@@ -167,19 +168,19 @@ void Render(){
     if(massCenterRendered){DrawCircle(massCenter.x,massCenter.y, 3, RED);}
     
     sprintf(buffer, "DRAG C: %.2f", dragCoefficient);
-    DrawText(buffer, WINDOWW-WINDOWW/4, WINDOWH-WINDOWH/8, 12, RED);
+    DrawText(buffer, WINDOWW-WINDOWW/4, WINDOWH-62, 12, RED);
     
     sprintf(buffer, "PULL: %.2f", FORCE);
-    DrawText(buffer, WINDOWW-WINDOWW/4, WINDOWH-WINDOWH/12, 12, RED);
+    DrawText(buffer, WINDOWW-WINDOWW/4, WINDOWH-50, 12, RED);
 
     sprintf(buffer, "GRAVITY: %.2f", GRAVITY);
-    DrawText(buffer, WINDOWW-WINDOWW/4, WINDOWH-WINDOWH/16, 12, RED);
+    DrawText(buffer, WINDOWW-WINDOWW/4, WINDOWH-38, 12, RED);
 
     sprintf(buffer, "RANDOMNESS: %.2f", randomness);
-    DrawText(buffer, WINDOWW-WINDOWW/4,WINDOWH-WINDOWH/24, 12, RED);
+    DrawText(buffer, WINDOWW-WINDOWW/4,WINDOWH-26, 12, RED);
 
     sprintf(buffer, "AMMOUNT: %.1f", ammount);
-    DrawText(buffer, WINDOWW-WINDOWW/4,WINDOWH-WINDOWH/30, 12, RED);
+    DrawText(buffer, WINDOWW-WINDOWW/4,WINDOWH-12, 12, RED);
 
     sprintf(buffer, "%d", GetFPS());
     DrawText(buffer, WINDOWW-WINDOWW/6, WINDOWH/20, 20, RED);
