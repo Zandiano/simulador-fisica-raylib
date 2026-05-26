@@ -7,24 +7,31 @@
 
 #define WINDOWH 600
 #define WINDOWW 600
-#define TARGET_FPS 30
+#define TARGET_FPS 15
 #define PARTICLE_QNT 10000
 #define PARTICLE_MASS 1
 #define PARTICLE_COLOR BLACK
-#define RESISTENCIA 0.60f
+#define DAMPING 0.55f
+#define PITAGORAS(x,y) sqrt(x*x+y*y)
 
 int Pause = 0;
-float randomness = 0.1f;
 char buffer[64] = "";
 int KEY = 0;
 Vector2 dist = {0};
 Vector2 dir = {0};
 Vector2 massCenter = {0};
 int massCenterRendered = 0;
-float FORCE = 1.0f;
-float gravityForceCalc = 0;
-float GRAVITY = 0.1f;
+float randomness = 0.0f;
+float FORCE = 0.0f;
+float pullForce = 0;
+float GRAVITY = 0.0f;
 int gravityOn = 1;
+float dragCoefficient = 0;
+float drag = 0;
+float velMag = 0.0f;
+float distMag = 0.0f;
+float ammount = 0.1f;
+float deltaTime = 0.0f;
 
 struct particle{
     Vector2 pos;
@@ -48,6 +55,8 @@ void PreUpdate(){
     massCenter.x = 0;
     massCenter.y = 0;
 
+    deltaTime = fmax(GetFrameTime(), 0.01);
+
     for(int i = 0; i < PARTICLE_QNT; i++){
         massCenter.x += particleList[i].pos.x;
         massCenter.y += particleList[i].pos.y;
@@ -59,25 +68,31 @@ void PreUpdate(){
     KEY = GetKeyPressed();
     switch(KEY){
         case KEY_UP:
-            randomness += 0.1f;
+            randomness += ammount;
             break;
         case KEY_DOWN:
-            randomness -= 0.1f;
+            randomness -= ammount;
             break;
         case KEY_LEFT:
-            GRAVITY -= 0.1f;
+            GRAVITY -= ammount;
             break;
         case KEY_RIGHT:
-            GRAVITY += 0.1f;
+            GRAVITY += ammount;
             break;
         case KEY_R:
             Init();
             break;
         case KEY_PAGE_UP:
-            FORCE += 0.1f;
+            FORCE += ammount;
             break;
         case KEY_PAGE_DOWN:
-            FORCE -= 0.1f;
+            FORCE -= ammount;
+            break;
+        case KEY_M:
+            dragCoefficient += ammount;
+            break;
+        case KEY_N:
+            dragCoefficient -= ammount;
             break;
         case KEY_P:
             gravityOn = !gravityOn;
@@ -87,6 +102,12 @@ void PreUpdate(){
             break;
         case KEY_Z:
             massCenterRendered = !massCenterRendered;
+            break;
+        case KEY_K:
+            ammount *= 10;
+            break;
+        case KEY_J:
+            ammount /= 10;
             break;
     }
 }
@@ -103,29 +124,39 @@ void Update(){
         dist.x = massCenter.x - particleList[i].pos.x;
         dist.y = massCenter.y - particleList[i].pos.y;
 
-        if(dist.x){dir.x = dist.x/fabs(dist.x);} else {dir.x = 0;}
-        if(dist.y){dir.y = dist.y/fabs(dist.y);} else {dir.y = 0;}
+        distMag = PITAGORAS(dist.x, dist.y);
 
-        gravityForceCalc = (PARTICLE_QNT/(pow(dist.x,2)+pow(dist.y,2))) * FORCE;
+        if(distMag > 0.01f){
+            dir.x = dist.x / distMag;
+            dir.y = dist.y / distMag;
+        }
 
-        particleList[i].vel.x += dir.x * gravityForceCalc;
-        particleList[i].vel.y += dir.y * gravityForceCalc;
+        pullForce = (PARTICLE_QNT/fmax(pow(dist.x,2)+pow(dist.y,2), 25.0f)) * FORCE;
+
+        velMag = PITAGORAS(particleList[i].vel.x, particleList[i].vel.y);
+
+        if(velMag > 0.01f){
+            drag = velMag*velMag*(dragCoefficient/100);
+    
+            particleList[i].vel.x -= (particleList[i].vel.x / velMag) * drag * deltaTime;
+            particleList[i].vel.y -= (particleList[i].vel.y / velMag) * drag * deltaTime;
+        }
+
+        particleList[i].vel.x += dir.x * pullForce * deltaTime;
+        particleList[i].vel.y += dir.y * pullForce * deltaTime;
     }
 }
 
 void PosUpdate(){
-    float deltaTime = GetFrameTime();
+    
     for(int i = 0; i < PARTICLE_QNT; i++){
-        particleList[i].vel.x *= RESISTENCIA;
-        particleList[i].vel.y *= RESISTENCIA;
-        
-        particleList[i].pos.x += particleList[i].vel.x/deltaTime;
-        particleList[i].pos.y += particleList[i].vel.y/deltaTime;
+        particleList[i].pos.x += particleList[i].vel.x*deltaTime;
+        particleList[i].pos.y += particleList[i].vel.y*deltaTime;
 
-        if(particleList[i].pos.x > WINDOWW){particleList[i].pos.x = WINDOWW;}
-        else if(particleList[i].pos.x < 0){particleList[i].pos.x = 0;}
-        if(particleList[i].pos.y > WINDOWH){particleList[i].pos.y = WINDOWH;}
-        else if(particleList[i].pos.y < 0){particleList[i].pos.y = 0;}
+        if(particleList[i].pos.x > WINDOWW){particleList[i].pos.x = WINDOWW; particleList[i].vel.x *= -DAMPING;}
+        else if(particleList[i].pos.x < 0){particleList[i].pos.x = 0; particleList[i].vel.x *= -DAMPING;}
+        if(particleList[i].pos.y > WINDOWH){particleList[i].pos.y = WINDOWH; particleList[i].vel.y *= -DAMPING;}
+        else if(particleList[i].pos.y < 0){particleList[i].pos.y = 0; particleList[i].vel.y *= -DAMPING;}
     }
 }
 
@@ -135,6 +166,9 @@ void Render(){
     
     if(massCenterRendered){DrawCircle(massCenter.x,massCenter.y, 3, RED);}
     
+    sprintf(buffer, "DRAG C: %.2f", dragCoefficient);
+    DrawText(buffer, WINDOWW-WINDOWW/4, WINDOWH-WINDOWH/8, 12, RED);
+    
     sprintf(buffer, "PULL: %.2f", FORCE);
     DrawText(buffer, WINDOWW-WINDOWW/4, WINDOWH-WINDOWH/12, 12, RED);
 
@@ -143,6 +177,9 @@ void Render(){
 
     sprintf(buffer, "RANDOMNESS: %.2f", randomness);
     DrawText(buffer, WINDOWW-WINDOWW/4,WINDOWH-WINDOWH/24, 12, RED);
+
+    sprintf(buffer, "AMMOUNT: %.1f", ammount);
+    DrawText(buffer, WINDOWW-WINDOWW/4,WINDOWH-WINDOWH/30, 12, RED);
 
     sprintf(buffer, "%d", GetFPS());
     DrawText(buffer, WINDOWW-WINDOWW/6, WINDOWH/20, 20, RED);
