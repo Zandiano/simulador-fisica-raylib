@@ -24,3 +24,11 @@ Arrow Left = -Gravity
 Z = Center of Mass
 
 P = Gravity On/Off
+
+M = +Drag
+
+N = -Drag
+
+K = +Ammount
+
+J = -Ammount
